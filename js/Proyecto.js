@@ -185,7 +185,7 @@ function loadScene()
     paredes.push( new THREE.MeshBasicMaterial( {side: THREE.BackSide,
         map: textureLoader.load("./images/Cposx.jpg")} ));
     paredes.push( new THREE.MeshBasicMaterial( {side: THREE.BackSide,
-        map: textureLoader.load("./images/Sunx.jpeg")} ));
+        map: textureLoader.load("./images/Sunx.jpg")} ));
     paredes.push( new THREE.MeshBasicMaterial( {side: THREE.BackSide,
         map: textureLoader.load("./images/Cposy.jpg")} ));
     paredes.push( new THREE.MeshBasicMaterial( {side: THREE.BackSide,
