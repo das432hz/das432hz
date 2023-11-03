@@ -175,17 +175,17 @@ function loadScene()
     // Agregar habitacion contenedora (This is the work of Emil Persson, aka Humus. http://www.humus.name)
     const paredes = [];
     paredes.push( new THREE.MeshBasicMaterial( {side: THREE.BackSide,
-        map: textureLoader.load("./images/Cposx.jpg")} ));
+        map: textureLoader.load("./images/posx.jpg")} ));
     paredes.push( new THREE.MeshBasicMaterial( {side: THREE.BackSide,
-        map: textureLoader.load("./images/marx.jpeg")} ));
+        map: textureLoader.load("./images/negy.jpeg")} ));
     paredes.push( new THREE.MeshBasicMaterial( {side: THREE.BackSide,
-        map: textureLoader.load("./images/Cposy.jpg")} ));
+        map: textureLoader.load("./images/posy.jpg")} ));
     paredes.push( new THREE.MeshBasicMaterial( {side: THREE.BackSide,
-        map: textureLoader.load("./images/Cnegy.jpg")} ));
+        map: textureLoader.load("./images/negy.jpg")} ));
     paredes.push( new THREE.MeshBasicMaterial( {side: THREE.BackSide,
-        map: textureLoader.load("./images/Cposz.jpg")} ));
+        map: textureLoader.load("./images/posz.jpg")} ));
     paredes.push( new THREE.MeshBasicMaterial( {side: THREE.BackSide,
-        map: textureLoader.load("./images/Cnegz.jpg")} ));
+        map: textureLoader.load("./images/negz.jpg")} ));
     const geoHabitacion = new THREE.BoxGeometry(1500,1500,1500);
     const habitacion = new THREE.Mesh(geoHabitacion,paredes);
     habitacion.position.y = 200;
