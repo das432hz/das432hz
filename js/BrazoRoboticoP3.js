@@ -1,10 +1,4 @@
-/**
- * Practica3.js
- * 
- * Seminario GPC #3. Practica 3: agregar vistas dinamicas al brazo robotico
- * Autor: Juan Felipe Jaramillo Hernandez
- * Date: 28/09/2022
- */
+
 
 // Modulos necesarios
 import * as THREE from "../lib/three.module.js";
