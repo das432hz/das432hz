@@ -1,11 +1,3 @@
-/**
- * Proyecto.js
- * 
- * Seminario GPC. Proyecto: prototipo de robot para fenotipado de cultivos agricolas
- * Autor: Juan Felipe Jaramillo Hernandez
- * Date: 22/10/2022
- */
-
 // Modulos necesarios
 import * as THREE from "../lib/three.module.js";
 import {OrbitControls} from "../lib/OrbitControls.module.js";
