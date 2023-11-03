@@ -1,10 +1,3 @@
-/**
- * Practica2.js
- * 
- * Seminario GPC #2. Practica 2: construir un brazo robotico
- * Autor: Santiago Humberto Ramirez Martinez
- 
- */
 
 // Modulos necesarios
 import * as THREE from "../lib/three.module.js";
