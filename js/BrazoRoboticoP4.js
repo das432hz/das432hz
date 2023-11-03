@@ -1,10 +1,3 @@
-/**
- * Practica4.js
- * 
- * Seminario GPC #4. Practica 4: agregar GUI y animaciones al robot
- * Autor: Juan Felipe Jaramillo Hernandez
- * Date: 28/09/2022
- */
 
 // Modulos necesarios
 import * as THREE from "../lib/three.module.js";
