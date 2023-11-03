@@ -2,8 +2,8 @@
  * Practica2.js
  * 
  * Seminario GPC #2. Practica 2: construir un brazo robotico
- * Autor: Juan Felipe Jaramillo Hernandez
- * Date: 26/09/2022
+ * Autor: Santiago Humberto Ramirez Martinez
+ 
  */
 
 // Modulos necesarios
