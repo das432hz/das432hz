@@ -202,7 +202,7 @@ function loadScene()
     
     // Suelo
     // Material suelo: Lambert + textura de superposion
-    const texsuelo = textureLoader.load("./images/Grass3.jpg"); // (Tomado de https://teamturflandscapes.com/home/grass-green-textures/)
+    const texsuelo = textureLoader.load("./images/Luna.jpg"); // (Tomado de https://teamturflandscapes.com/home/grass-green-textures/)
     texsuelo.repeat.set(6,6);
     texsuelo.wrapS = texsuelo.wrapT = THREE.RepeatWrapping;
     const groundMat = new THREE.MeshLambertMaterial({color: 0xffffff, map:texsuelo});
