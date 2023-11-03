@@ -1,10 +1,3 @@
-/**
- * Practica5.js
- * 
- * Seminario GPC #5. Practica 5: Iluminar y agregar texturas al robot
- * Autor: Juan Felipe Jaramillo Hernandez
- * Date: 19/10/2022
- */
 
 // Modulos necesarios
 import * as THREE from "../lib/three.module.js";
