@@ -236,6 +236,8 @@ function loadScene()
         cenital.position.y -= 35;
         scene.add( fenobot );
     } );
+
+	render();
 }
     // Cargar plantas demostrativas
     // Planta de maiz: "Corn! Corn! Corn!" (https://skfb.ly/6t6wL) by Tiia Tuulia is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
