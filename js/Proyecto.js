@@ -1,457 +1,740 @@
-var sceneWidth;
-var sceneHeight;
-var camera;
-var scene;
-var renderer;
-var dom;
-var sun;
-var ground;
-//var orbitControl;
-var rollingGroundSphere;
-var heroSphere;
-var rollingSpeed=0.008;
-var heroRollingSpeed;
-var worldRadius=26;
-var heroRadius=0.2;
-var sphericalHelper;
-var pathAngleValues;
-var heroBaseY=1.8;
-var bounceValue=0.1;
-var gravity=0.005;
-var leftLane=-1;
-var rightLane=1;
-var middleLane=0;
-var currentLane;
-var clock;
-var jumping;
-var treeReleaseInterval=0.5;
-var lastTreeReleaseTime=0;
-var treesInPath;
-var treesPool;
-var particleGeometry;
-var particleCount=20;
-var explosionPower =1.06;
-var particles;
-//var stats;
-var scoreText;
-var score;
-var hasCollided;
+import * as THREE from "../lib/three.module.js";
+import {OrbitControls} from "../lib/OrbitControls.module.js";
+import {TWEEN} from "../lib/tween.module.min.js"
+import {GLTFLoader} from "../lib/GLTFLoader.module.js";
+import {RGBELoader} from "../lib/RGBELoader.js";
+import {GUI} from "../lib/lil-gui.module.min.js"
 
+// Variables de consenso
+let renderer, scene, camera, cameraControls;
+
+// Otras camaras usadas
+let cenital, picada, robotCamera;
+
+// Globales del modelo
+let fenobot;
+let PanelAxisLeft;
+let PanelAxisRight;
+let TyreFrontLeft;
+let TyreFrontRight;
+let TyreRearLeft;
+let TyreRearRight;
+let BaseBrazoRobot;
+let Antebrazo1;
+let Antebrazo2;
+let SoporteHerramientas;
+let SoporteBroca;
+let EjeElevadorCamara;
+let SoporteCamara;
+let Camara;
+
+// Helpers
+let hemiLightHelper, dirLightHelper, helperCentinal, helperPicada, helperRobot;
+
+// Otras globales
+let effectController;
+var keyMap = [];
+let corn;
+
+// Acciones
 init();
+loadScene();
+setupGui();
 
-function init() {
-	// set up the scene
-	createScene();
+function init()
+{
+    // Instanciar el motor
+    renderer = new THREE.WebGLRenderer( { antialias: true } );
+    renderer.setPixelRatio( window.devicePixelRatio );
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setClearColor( new THREE.Color().setHSL( 0.6, 0, 1 ) );
+    renderer.autoClear = false;
+    renderer.shadowMap.enabled = true;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    document.getElementById('container').appendChild( renderer.domElement );
+    //document.body.appendChild( renderer.domElement );
 
-	//call game loop
-	update();
-}
+    // Instanciar la escena
+    scene = new THREE.Scene();
+    scene.fog = new THREE.Fog( scene.background, 1, 5000 );
 
-function createScene(){
-	hasCollided=false;
-	score=0;
-	treesInPath=[];
-	treesPool=[];
-	clock=new THREE.Clock();
-	clock.start();
-	heroRollingSpeed=(rollingSpeed*worldRadius/heroRadius)/5;
-	sphericalHelper = new THREE.Spherical();
-	pathAngleValues=[1.52,1.57,1.62];
-    sceneWidth=window.innerWidth;
-    sceneHeight=window.innerHeight;
-    scene = new THREE.Scene();//the 3d scene
-    scene.fog = new THREE.FogExp2( 0xf0fff0, 0.14 );
-    camera = new THREE.PerspectiveCamera( 60, sceneWidth / sceneHeight, 0.1, 1000 );//perspective camera
-    renderer = new THREE.WebGLRenderer({alpha:true});//renderer with transparent backdrop
-    renderer.setClearColor(0xfffafa, 1); 
-    renderer.shadowMap.enabled = true;//enable shadow
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.setSize( sceneWidth, sceneHeight );
-    dom = document.getElementById('TutContainer');
-	dom.appendChild(renderer.domElement);
-	//stats = new Stats();
-	//dom.appendChild(stats.dom);
-	createTreesPool();
-	addWorld();
-	addHero();
-	addLight();
-	addExplosion();
-	
-	camera.position.z = 6.5;
-	camera.position.y = 2.5;
-	/*orbitControl = new THREE.OrbitControls( camera, renderer.domElement );//helper to rotate around in scene
-	orbitControl.addEventListener( 'change', render );
-	orbitControl.noKeys = true;
-	orbitControl.noPan = true;
-	orbitControl.enableZoom = false;
-	orbitControl.minPolarAngle = 1.1;
-	orbitControl.maxPolarAngle = 1.1;
-	orbitControl.minAzimuthAngle = -0.2;
-	orbitControl.maxAzimuthAngle = 0.2;
-	*/
-	window.addEventListener('resize', onWindowResize, false);//resize callback
+    // Agregar iluminacion hemisferica
+    const hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.8 );
+    hemiLight.color.setHSL( 0.6, 1, 0.6 );
+    hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
+    hemiLight.position.set( 0, 300, 0 );
+    scene.add( hemiLight );
+    hemiLightHelper = new THREE.HemisphereLightHelper( hemiLight, 10 );
+    scene.add( hemiLightHelper );
 
-	document.onkeydown = handleKeyDown;
-	
-	scoreText = document.createElement('div');
-	scoreText.style.position = 'absolute';
-	//text2.style.zIndex = 1;    // if you still don't see the label, try uncommenting this
-	scoreText.style.width = 100;
-	scoreText.style.height = 100;
-	//scoreText.style.backgroundColor = "blue";
-	scoreText.innerHTML = "0";
-	scoreText.style.top = 50 + 'px';
-	scoreText.style.left = 10 + 'px';
-	document.body.appendChild(scoreText);
-  
-  var infoText = document.createElement('div');
-	infoText.style.position = 'absolute';
-	infoText.style.width = 100;
-	infoText.style.height = 100;
-	infoText.style.backgroundColor = "yellow";
-	infoText.innerHTML = "UP - Jump, Left/Right - Move";
-	infoText.style.top = 10 + 'px';
-	infoText.style.left = 10 + 'px';
-	document.body.appendChild(infoText);
-}
-function addExplosion(){
-	particleGeometry = new THREE.Geometry();
-	for (var i = 0; i < particleCount; i ++ ) {
-		var vertex = new THREE.Vector3();
-		particleGeometry.vertices.push( vertex );
-	}
-	var pMaterial = new THREE.ParticleBasicMaterial({
-	  color: 0xfffafa,
-	  size: 0.2
-	});
-	particles = new THREE.Points( particleGeometry, pMaterial );
-	scene.add( particles );
-	particles.visible=false;
-}
-function createTreesPool(){
-	var maxTreesInPool=10;
-	var newTree;
-	for(var i=0; i<maxTreesInPool;i++){
-		newTree=createTree();
-		treesPool.push(newTree);
-	}
-}
-function handleKeyDown(keyEvent){
-	if(jumping)return;
-	var validMove=true;
-	if ( keyEvent.keyCode === 37) {//left
-		if(currentLane==middleLane){
-			currentLane=leftLane;
-		}else if(currentLane==rightLane){
-			currentLane=middleLane;
-		}else{
-			validMove=false;	
-		}
-	} else if ( keyEvent.keyCode === 39) {//right
-		if(currentLane==middleLane){
-			currentLane=rightLane;
-		}else if(currentLane==leftLane){
-			currentLane=middleLane;
-		}else{
-			validMove=false;	
-		}
-	}else{
-		if ( keyEvent.keyCode === 38){//up, jump
-			bounceValue=0.1;
-			jumping=true;
-		}
-		validMove=false;
-	}
-	//heroSphere.position.x=currentLane;
-	if(validMove){
-		jumping=true;
-		bounceValue=0.06;
-	}
-}
-function addHero(){
-	var sphereGeometry = new THREE.DodecahedronGeometry( heroRadius, 1);
-	var sphereMaterial = new THREE.MeshStandardMaterial( { color: 0xe5f2f2 ,shading:THREE.FlatShading} )
-	jumping=false;
-	heroSphere = new THREE.Mesh( sphereGeometry, sphereMaterial );
-	heroSphere.receiveShadow = true;
-	heroSphere.castShadow=true;
-	scene.add( heroSphere );
-	heroSphere.position.y=heroBaseY;
-	heroSphere.position.z=4.8;
-	currentLane=middleLane;
-	heroSphere.position.x=currentLane;
-}
-function addWorld(){
-	var sides=40;
-	var tiers=40;
-	var sphereGeometry = new THREE.SphereGeometry( worldRadius, sides,tiers);
-	var sphereMaterial = new THREE.MeshStandardMaterial( { color: 0xfffafa ,shading:THREE.FlatShading} )
-	
-	var vertexIndex;
-	var vertexVector= new THREE.Vector3();
-	var nextVertexVector= new THREE.Vector3();
-	var firstVertexVector= new THREE.Vector3();
-	var offset= new THREE.Vector3();
-	var currentTier=1;
-	var lerpValue=0.5;
-	var heightValue;
-	var maxHeight=0.07;
-	for(var j=1;j<tiers-2;j++){
-		currentTier=j;
-		for(var i=0;i<sides;i++){
-			vertexIndex=(currentTier*sides)+1;
-			vertexVector=sphereGeometry.vertices[i+vertexIndex].clone();
-			if(j%2!==0){
-				if(i==0){
-					firstVertexVector=vertexVector.clone();
-				}
-				nextVertexVector=sphereGeometry.vertices[i+vertexIndex+1].clone();
-				if(i==sides-1){
-					nextVertexVector=firstVertexVector;
-				}
-				lerpValue=(Math.random()*(0.75-0.25))+0.25;
-				vertexVector.lerp(nextVertexVector,lerpValue);
-			}
-			heightValue=(Math.random()*maxHeight)-(maxHeight/2);
-			offset=vertexVector.clone().normalize().multiplyScalar(heightValue);
-			sphereGeometry.vertices[i+vertexIndex]=(vertexVector.add(offset));
-		}
-	}
-	rollingGroundSphere = new THREE.Mesh( sphereGeometry, sphereMaterial );
-	rollingGroundSphere.receiveShadow = true;
-	rollingGroundSphere.castShadow=false;
-	rollingGroundSphere.rotation.z=-Math.PI/2;
-	scene.add( rollingGroundSphere );
-	rollingGroundSphere.position.y=-24;
-	rollingGroundSphere.position.z=2;
-	addWorldTrees();
-}
-function addLight(){
-	var hemisphereLight = new THREE.HemisphereLight(0xfffafa,0x000000, .9)
-	scene.add(hemisphereLight);
-	sun = new THREE.DirectionalLight( 0xcdc1c5, 0.9);
-	sun.position.set( 12,6,-7 );
-	sun.castShadow = true;
-	scene.add(sun);
-	//Set up shadow properties for the sun light
-	sun.shadow.mapSize.width = 256;
-	sun.shadow.mapSize.height = 256;
-	sun.shadow.camera.near = 0.5;
-	sun.shadow.camera.far = 50 ;
-}
-function addPathTree(){
-	var options=[0,1,2];
-	var lane= Math.floor(Math.random()*3);
-	addTree(true,lane);
-	options.splice(lane,1);
-	if(Math.random()>0.5){
-		lane= Math.floor(Math.random()*2);
-		addTree(true,options[lane]);
-	}
-}
-function addWorldTrees(){
-	var numTrees=36;
-	var gap=6.28/36;
-	for(var i=0;i<numTrees;i++){
-		addTree(false,i*gap, true);
-		addTree(false,i*gap, false);
-	}
-}
-function addTree(inPath, row, isLeft){
-	var newTree;
-	if(inPath){
-		if(treesPool.length==0)return;
-		newTree=treesPool.pop();
-		newTree.visible=true;
-		//console.log("add tree");
-		treesInPath.push(newTree);
-		sphericalHelper.set( worldRadius-0.3, pathAngleValues[row], -rollingGroundSphere.rotation.x+4 );
-	}else{
-		newTree=createTree();
-		var forestAreaAngle=0;//[1.52,1.57,1.62];
-		if(isLeft){
-			forestAreaAngle=1.68+Math.random()*0.1;
-		}else{
-			forestAreaAngle=1.46-Math.random()*0.1;
-		}
-		sphericalHelper.set( worldRadius-0.3, forestAreaAngle, row );
-	}
-	newTree.position.setFromSpherical( sphericalHelper );
-	var rollingGroundVector=rollingGroundSphere.position.clone().normalize();
-	var treeVector=newTree.position.clone().normalize();
-	newTree.quaternion.setFromUnitVectors(treeVector,rollingGroundVector);
-	newTree.rotation.x+=(Math.random()*(2*Math.PI/10))+-Math.PI/10;
-	
-	rollingGroundSphere.add(newTree);
-}
-function createTree(){
-	var sides=8;
-	var tiers=6;
-	var scalarMultiplier=(Math.random()*(0.25-0.1))+0.05;
-	var midPointVector= new THREE.Vector3();
-	var vertexVector= new THREE.Vector3();
-	var treeGeometry = new THREE.ConeGeometry( 0.5, 1, sides, tiers);
-	var treeMaterial = new THREE.MeshStandardMaterial( { color: 0x33ff33,shading:THREE.FlatShading  } );
-	var offset;
-	midPointVector=treeGeometry.vertices[0].clone();
-	var currentTier=0;
-	var vertexIndex;
-	blowUpTree(treeGeometry.vertices,sides,0,scalarMultiplier);
-	tightenTree(treeGeometry.vertices,sides,1);
-	blowUpTree(treeGeometry.vertices,sides,2,scalarMultiplier*1.1,true);
-	tightenTree(treeGeometry.vertices,sides,3);
-	blowUpTree(treeGeometry.vertices,sides,4,scalarMultiplier*1.2);
-	tightenTree(treeGeometry.vertices,sides,5);
-	var treeTop = new THREE.Mesh( treeGeometry, treeMaterial );
-	treeTop.castShadow=true;
-	treeTop.receiveShadow=false;
-	treeTop.position.y=0.9;
-	treeTop.rotation.y=(Math.random()*(Math.PI));
-	var treeTrunkGeometry = new THREE.CylinderGeometry( 0.1, 0.1,0.5);
-	var trunkMaterial = new THREE.MeshStandardMaterial( { color: 0x886633,shading:THREE.FlatShading  } );
-	var treeTrunk = new THREE.Mesh( treeTrunkGeometry, trunkMaterial );
-	treeTrunk.position.y=0.25;
-	var tree =new THREE.Object3D();
-	tree.add(treeTrunk);
-	tree.add(treeTop);
-	return tree;
-}
-function blowUpTree(vertices,sides,currentTier,scalarMultiplier,odd){
-	var vertexIndex;
-	var vertexVector= new THREE.Vector3();
-	var midPointVector=vertices[0].clone();
-	var offset;
-	for(var i=0;i<sides;i++){
-		vertexIndex=(currentTier*sides)+1;
-		vertexVector=vertices[i+vertexIndex].clone();
-		midPointVector.y=vertexVector.y;
-		offset=vertexVector.sub(midPointVector);
-		if(odd){
-			if(i%2===0){
-				offset.normalize().multiplyScalar(scalarMultiplier/6);
-				vertices[i+vertexIndex].add(offset);
-			}else{
-				offset.normalize().multiplyScalar(scalarMultiplier);
-				vertices[i+vertexIndex].add(offset);
-				vertices[i+vertexIndex].y=vertices[i+vertexIndex+sides].y+0.05;
-			}
-		}else{
-			if(i%2!==0){
-				offset.normalize().multiplyScalar(scalarMultiplier/6);
-				vertices[i+vertexIndex].add(offset);
-			}else{
-				offset.normalize().multiplyScalar(scalarMultiplier);
-				vertices[i+vertexIndex].add(offset);
-				vertices[i+vertexIndex].y=vertices[i+vertexIndex+sides].y+0.05;
-			}
-		}
-	}
-}
-function tightenTree(vertices,sides,currentTier){
-	var vertexIndex;
-	var vertexVector= new THREE.Vector3();
-	var midPointVector=vertices[0].clone();
-	var offset;
-	for(var i=0;i<sides;i++){
-		vertexIndex=(currentTier*sides)+1;
-		vertexVector=vertices[i+vertexIndex].clone();
-		midPointVector.y=vertexVector.y;
-		offset=vertexVector.sub(midPointVector);
-		offset.normalize().multiplyScalar(0.06);
-		vertices[i+vertexIndex].sub(offset);
-	}
+    // Agregar iluminacion direccional
+    const dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
+    dirLight.color.setHSL( 0.1, 1, 0.95 );
+    dirLight.position.set( 750, 1000, 750 );
+    scene.add( dirLight );
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 4096;
+    dirLight.shadow.mapSize.height = 4096;
+    const d = 1000;
+    dirLight.shadow.camera.left = - d;
+    dirLight.shadow.camera.right = d;
+    dirLight.shadow.camera.top = d;
+    dirLight.shadow.camera.bottom = - d;
+    dirLight.shadow.camera.far = 3000;
+    dirLight.shadow.bias = - 0.0001;
+    dirLightHelper = new THREE.DirectionalLightHelper( dirLight, 10 );
+    scene.add( dirLightHelper );
+
+    // Instanciar la camara
+    camera = new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,1,3000);
+    camera.position.set(50,300,50);
+    cameraControls = new OrbitControls( camera, renderer.domElement );
+    cameraControls.minPolarAngle = 0;
+    cameraControls.maxPolarAngle = 96.0*Math.PI/180;
+    cameraControls.minDistance = 90;
+    cameraControls.maxDistance = 300;
+    cameraControls.enablePan = false;
+    cameraControls.target.set(0,50,0);
+    camera.lookAt(0,50,0);
+
+    // camara ortognal: cenital y con volumen fijo independientemente de la relacion aspecto
+    const L = 70;
+    const dist = 200;
+    cenital = new THREE.OrthographicCamera(-L,L,L,-L,1,dist+10);
+    cenital.position.set( 0,dist,0 );
+    cenital.up.set( 1,0,0 );
+    cenital.lookAt( 0,0,0 );
+    helperCentinal = new THREE.CameraHelper( cenital );
+    scene.add( helperCentinal );
+
+    // camara ortognal: picada y con volumen fijo independientemente de la relacion aspecto
+    picada = new THREE.OrthographicCamera(-20,20,21,-23,-20,120);
+    picada.position.set( 70,24,5 );
+    picada.up.set( 0,1,0 );
+    picada.lookAt( 10,12,-21 );
+    helperPicada = new THREE.CameraHelper( picada );
+    scene.add( helperPicada );
+
+    // camara perspectiva: vista del robot
+    robotCamera = new THREE.PerspectiveCamera(75,1,1,150);
+    robotCamera.position.set(0,1,0);
+    robotCamera.lookAt(0,0,0);
+    robotCamera.rotation.y -= Math.PI/2;
+    robotCamera.rotation.x += Math.PI/2;
+    robotCamera.updateProjectionMatrix();
+    robotCamera.position.set(1,1,0);
+    helperRobot = new THREE.CameraHelper( robotCamera );
+    scene.add( helperRobot );
+
+    // ocultar todos los helpers
+    helperPicada.visible = false;
+    hemiLightHelper.visible = false;
+    dirLightHelper.visible = false; 
+    helperCentinal.visible = false; 
+    helperPicada.visible = false;
+    helperRobot.visible = false;
+
+    // Captura de eventos
+    window.addEventListener('resize', updateAspectRatio);
+    document.addEventListener("keydown", onDocumentKeyDown, true); 
+    document.addEventListener("keyup", onDocumentKeyUp, true);
 }
 
-function update(){
-	//stats.update();
-    //animate
-    rollingGroundSphere.rotation.x += rollingSpeed;
-    heroSphere.rotation.x -= heroRollingSpeed;
-    if(heroSphere.position.y<=heroBaseY){
-    	jumping=false;
-    	bounceValue=(Math.random()*0.04)+0.005;
+function loadScene()
+{
+
+    const loadingManager = new THREE.LoadingManager();
+
+    const progressBar = document.getElementById('progress-bar');
+    loadingManager.onProgress = function(url, loaded, total){
+        progressBar.value = (loaded / total) * 100;
     }
-    heroSphere.position.y+=bounceValue;
-    heroSphere.position.x=THREE.Math.lerp(heroSphere.position.x,currentLane, 2*clock.getDelta());//clock.getElapsedTime());
-    bounceValue-=gravity;
-    if(clock.getElapsedTime()>treeReleaseInterval){
-    	clock.start();
-    	addPathTree();
-    	if(!hasCollided){
-			score+=2*treeReleaseInterval;
-			scoreText.innerHTML=score.toString();
-		}
+
+    const progressBarContainer = document.querySelector('.progress-bar-container');
+    loadingManager.onLoad = function(){
+        progressBarContainer.style.display = 'none';
+        //console.log(`Finished loading`);
     }
-    doTreeLogic();
-    doExplosionLogic();
+
+    const loaderGLTF = new GLTFLoader(loadingManager).setPath( './models/' );
+    const textureLoader = new THREE.TextureLoader(loadingManager);
+
+    // Agregar proyeccion equirectangular para iluminar la escena https://github.com/mrdoob/three.js/blob/master/examples/webgl_loader_gltf.html
+    new RGBELoader()
+        .setPath( './textures/equirectangular/' )
+        .load( 'flower_road_1k.hdr', function ( texture ) { // Tomado de https://polyhaven.com/ creado por Greg Zaal
+            texture.mapping = THREE.EquirectangularReflectionMapping;
+            //scene.background = texture;
+            scene.environment = texture;
+            texture.dispose();
+        } );
+    
+    // Agregar habitacion contenedora (This is the work of Emil Persson, aka Humus. http://www.humus.name)
+    const paredes = [];
+    paredes.push( new THREE.MeshBasicMaterial( {side: THREE.BackSide,
+        map: textureLoader.load("./images/Cposx.jpg")} ));
+    paredes.push( new THREE.MeshBasicMaterial( {side: THREE.BackSide,
+        map: textureLoader.load("./images/Cnegx.jpg")} ));
+    paredes.push( new THREE.MeshBasicMaterial( {side: THREE.BackSide,
+        map: textureLoader.load("./images/Cposy.jpg")} ));
+    paredes.push( new THREE.MeshBasicMaterial( {side: THREE.BackSide,
+        map: textureLoader.load("./images/Cnegy.jpg")} ));
+    paredes.push( new THREE.MeshBasicMaterial( {side: THREE.BackSide,
+        map: textureLoader.load("./images/Cposz.jpg")} ));
+    paredes.push( new THREE.MeshBasicMaterial( {side: THREE.BackSide,
+        map: textureLoader.load("./images/Cnegz.jpg")} ));
+    const geoHabitacion = new THREE.BoxGeometry(1500,1500,1500);
+    const habitacion = new THREE.Mesh(geoHabitacion,paredes);
+    habitacion.position.y = 200;
+    habitacion.rotation.y = Math.PI / 2;
+    scene.add(habitacion);
+    
+    // Suelo
+    // Material suelo: Lambert + textura de superposion
+    const texsuelo = textureLoader.load("./images/Grass3.jpg"); // (Tomado de https://teamturflandscapes.com/home/grass-green-textures/)
+    texsuelo.repeat.set(6,6);
+    texsuelo.wrapS = texsuelo.wrapT = THREE.RepeatWrapping;
+    const groundMat = new THREE.MeshLambertMaterial({color: 0xffffff, map:texsuelo});
+    groundMat.color.setHSL( 0.095, 1, 0.75 );
+    const groundGeo = new THREE.PlaneGeometry( 1500, 1500 );
+
+    const ground = new THREE.Mesh( groundGeo, groundMat );
+    ground.rotation.x = - Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add( ground );
+
+    // Cargar modelo del robot
+    loaderGLTF.load( 'FenobotModel.glb', function ( gltf ) {
+        fenobot = gltf.scene;
+        fenobot.position.y = 35;
+        fenobot.traverse(function (child) {
+            //console.log(child);
+            child.receiveShadow = true;
+            child.castShadow = true;
+        });
+        PanelAxisLeft = fenobot.getObjectByName('PanelAxisLeft');
+        PanelAxisRight = fenobot.getObjectByName('PanelAxisRight');
+        TyreFrontLeft = fenobot.getObjectByName('TyreFrontLeft');
+        TyreFrontRight = fenobot.getObjectByName('TyreFrontRight');
+        TyreRearLeft = fenobot.getObjectByName('TyreRearLeft');
+        TyreRearRight = fenobot.getObjectByName('TyreRearRight');
+        BaseBrazoRobot = fenobot.getObjectByName('BaseBrazoRobot');
+        Antebrazo1 = fenobot.getObjectByName('Antebrazo1');
+        Antebrazo2 = fenobot.getObjectByName('Antebrazo2');
+        SoporteHerramientas = fenobot.getObjectByName('SoporteHerramientas');
+        SoporteBroca = fenobot.getObjectByName('SoporteBroca');
+        EjeElevadorCamara = fenobot.getObjectByName('EjeElevadorCamara');
+        SoporteCamara = fenobot.getObjectByName('SoporteCamara');
+        Camara = fenobot.getObjectByName('Camara001');
+        Camara.add(robotCamera);
+        fenobot.add(picada);
+        fenobot.add(cenital);
+        picada.position.y -= 35;
+        cenital.position.y -= 35;
+        scene.add( fenobot );
+    } );
+
+    // Cargar plantas demostrativas
+    // Planta de maiz: "Corn! Corn! Corn!" (https://skfb.ly/6t6wL) by Tiia Tuulia is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+    loaderGLTF.load( 'corn_corn_corn.glb', function ( gltf ) {
+        corn = gltf.scene;
+        corn.traverse(function (child) {
+            child.receiveShadow = true;
+            child.castShadow = true;
+        });
+        corn.scale.set(90,90,90);
+        for(let i = -400; i < 400; i+=80){
+            const cornCopy = corn.clone();
+            cornCopy.position.set(i, 0, 190);
+            cornCopy.rotation.y = Math.random() * (Math.PI);
+            scene.add( cornCopy );
+        }
+    } );
+
     render();
-	requestAnimationFrame(update);//request next update
 }
-function doTreeLogic(){
-	var oneTree;
-	var treePos = new THREE.Vector3();
-	var treesToRemove=[];
-	treesInPath.forEach( function ( element, index ) {
-		oneTree=treesInPath[ index ];
-		treePos.setFromMatrixPosition( oneTree.matrixWorld );
-		if(treePos.z>6 &&oneTree.visible){//gone out of our view zone
-			treesToRemove.push(oneTree);
-		}else{//check collision
-			if(treePos.distanceTo(heroSphere.position)<=0.6){
-				console.log("hit");
-				hasCollided=true;
-				explode();
-			}
-		}
-	});
-	var fromWhere;
-	treesToRemove.forEach( function ( element, index ) {
-		oneTree=treesToRemove[ index ];
-		fromWhere=treesInPath.indexOf(oneTree);
-		treesInPath.splice(fromWhere,1);
-		treesPool.push(oneTree);
-		oneTree.visible=false;
-		console.log("remove tree");
-	});
+
+function render(delta)
+{
+    requestAnimationFrame(render);
+    renderer.clear();
+
+    // actualizar desplazamiento del robot
+    desplazarRobot();
+
+    // actualizar las animaciones junto con la GUI
+    TWEEN.update(delta);
+    updateGui();
+
+    // actualizar el viewport con 1/3 de la dimension menor para la vista cenital, la vista de picada y la vista de la camara del robot
+    const ar = window.innerWidth/window.innerHeight;
+    if(ar>1){
+        renderer.setViewport(0,window.innerHeight-window.innerHeight/3,window.innerHeight/3,window.innerHeight/3);
+    }
+    else{
+        renderer.setViewport(0,window.innerHeight-window.innerWidth/3,window.innerWidth/3,window.innerWidth/3);
+    }
+    renderer.render(scene,robotCamera);
+
+    if(ar>1){
+        renderer.setViewport(0,window.innerHeight-2*window.innerHeight/3,window.innerHeight/3,window.innerHeight/3);
+    }
+    else{
+        renderer.setViewport(0,window.innerHeight-2*window.innerWidth/3,window.innerWidth/3,window.innerWidth/3);
+    }
+    renderer.render(scene,picada);
+
+    if(ar>1){
+        renderer.setViewport(0,window.innerHeight-3*window.innerHeight/3,window.innerHeight/3,window.innerHeight/3);
+    }
+    else{
+        renderer.setViewport(0,window.innerHeight-3*window.innerWidth/3,window.innerWidth/3,window.innerWidth/3);
+    }
+    renderer.render(scene,cenital);
+
+    // actualizar el vieport con toda la relacion aspecto para todo el modelo
+    renderer.setViewport(0,0,window.innerWidth,window.innerHeight);
+    renderer.render(scene,camera);
 }
-function doExplosionLogic(){
-	if(!particles.visible)return;
-	for (var i = 0; i < particleCount; i ++ ) {
-		particleGeometry.vertices[i].multiplyScalar(explosionPower);
-	}
-	if(explosionPower>1.005){
-		explosionPower-=0.001;
-	}else{
-		particles.visible=false;
-	}
-	particleGeometry.verticesNeedUpdate = true;
+
+function updateAspectRatio()
+{
+    renderer.setSize(window.innerWidth,window.innerHeight);
+    const ar = window.innerWidth/window.innerHeight;
+    camera.aspect = ar;
+    camera.updateProjectionMatrix();
 }
-function explode(){
-	particles.position.y=2;
-	particles.position.z=4.8;
-	particles.position.x=heroSphere.position.x;
-	for (var i = 0; i < particleCount; i ++ ) {
-		var vertex = new THREE.Vector3();
-		vertex.x = -0.2+Math.random() * 0.4;
-		vertex.y = -0.2+Math.random() * 0.4 ;
-		vertex.z = -0.2+Math.random() * 0.4;
-		particleGeometry.vertices[i]=vertex;
-	}
-	explosionPower=1.07;
-	particles.visible=true;
+
+function onDocumentKeyDown(event){ 
+    var keyCode = event.keyCode;
+    keyMap[keyCode] = true;
 }
-function render(){
-    renderer.render(scene, camera);//draw
+function onDocumentKeyUp(event){
+    var keyCode = event.keyCode;
+    keyMap[keyCode] = false;
 }
-function gameOver () {
-  //cancelAnimationFrame( globalRenderID );
-  //window.clearInterval( powerupSpawnIntervalID );
+
+function desplazarRobot()
+{
+
+    if(fenobot)
+    {
+        // actualizar la posicion del robot dentro de los limites de la habitacion
+        if(keyMap[37] == true){ // flecha izq
+            if(fenobot.position.z > -680 && fenobot.position.z < 680 && fenobot.position.x < 680 && fenobot.position.x > -680){
+               fenobot.translateZ(keyMap[40] == true || keyMap[38] ? -0.5 : -1); 
+            }
+            else{
+                fenobot.position.set(0,35,0);
+            }
+            TyreFrontRight.rotation.y += -Math.PI/100;
+            TyreRearRight.rotation.y += Math.PI/100;
+            TyreFrontLeft.rotation.y += -Math.PI/100;
+            TyreRearLeft.rotation.y += Math.PI/100;
+        }
+        if(keyMap[39] == true){ // flecha der
+            if(fenobot.position.z > -680 && fenobot.position.z < 680 && fenobot.position.x < 680 && fenobot.position.x > -680){
+                fenobot.translateZ(keyMap[40] == true || keyMap[38] ? 0.5 : 1);
+            }
+            else{
+                fenobot.position.set(0,35,0);
+            }
+            TyreFrontRight.rotation.y += Math.PI/100;
+            TyreRearRight.rotation.y += -Math.PI/100;
+            TyreFrontLeft.rotation.y += Math.PI/100;
+            TyreRearLeft.rotation.y += -Math.PI/100;
+        }
+        if(keyMap[38] == true){ // flecha arriba
+            if(fenobot.position.z > -680 && fenobot.position.z < 680 && fenobot.position.x < 680 && fenobot.position.x > -680){
+                fenobot.translateX(keyMap[37] == true || keyMap[39] == true ? 0.5 : 1);
+            }
+            else{
+                fenobot.position.set(0,35,0);
+            }
+            TyreFrontRight.rotation.y += -Math.PI/100;
+            TyreRearRight.rotation.y += -Math.PI/100;
+            TyreFrontLeft.rotation.y += Math.PI/100;
+            TyreRearLeft.rotation.y += Math.PI/100;
+        }
+        if(keyMap[40] == true){ // flecha abajo
+            if(fenobot.position.z > -680 && fenobot.position.z < 680 && fenobot.position.x < 680 && fenobot.position.x > -680){
+                fenobot.translateX(keyMap[37] == true || keyMap[39] == true ? -0.5 : -1);
+            }
+            else{
+                fenobot.position.set(0,35,0);
+            }
+            TyreFrontRight.rotation.y += Math.PI/100;
+            TyreRearRight.rotation.y += Math.PI/100;
+            TyreFrontLeft.rotation.y += -Math.PI/100;
+            TyreRearLeft.rotation.y += -Math.PI/100;
+        }
+
+        // actualizar la rotacion del robot
+        if(keyMap[65] == true){ // tecla A
+            fenobot.rotation.y += Math.PI/200;
+            TyreFrontRight.rotation.y += -Math.PI/100;
+            TyreRearRight.rotation.y += -Math.PI/100;
+            TyreFrontLeft.rotation.y += -Math.PI/100;
+            TyreRearLeft.rotation.y += -Math.PI/100;
+        }
+        if(keyMap[68] == true){ // tecla D
+            fenobot.rotation.y += -Math.PI/200;
+            TyreFrontRight.rotation.y += Math.PI/100;
+            TyreRearRight.rotation.y += Math.PI/100;
+            TyreFrontLeft.rotation.y += Math.PI/100;
+            TyreRearLeft.rotation.y += Math.PI/100;
+        }
+
+        // Actualizar la posicion de la camara para seguir el desplazamiento del robot
+        var vec3 = new THREE.Vector3();
+        vec3.subVectors(camera.position, fenobot.position);
+        cameraControls.object.position.copy(fenobot.position).add(vec3);
+        cameraControls.target.copy(fenobot.position);
+        cameraControls.update();
+    }
 }
-function onWindowResize() {
-	//resize & align
-	sceneHeight = window.innerHeight;
-	sceneWidth = window.innerWidth;
-	renderer.setSize(sceneWidth, sceneHeight);
-	camera.aspect = sceneWidth/sceneHeight;
-	camera.updateProjectionMatrix();
+
+function DemostracionPanelesSolares()
+{
+    const time = 8000;
+    const interpolacion = TWEEN.Interpolation.CatmullRom;
+    const easing = TWEEN.Easing.Sinusoidal.InOut;
+
+    new TWEEN.Tween(PanelAxisLeft.rotation)
+    .to({
+        x: [-Math.PI / 2, -Math.PI / 2],
+        y: [-60.0 * Math.PI / 180, 45.0 * Math.PI / 180, 0.0],
+        z: [0, 0]
+    }, time)
+    .interpolation(interpolacion)
+    .easing(easing)
+    .start();
+
+    new TWEEN.Tween(PanelAxisRight.rotation)
+    .to({
+        x: [-Math.PI / 2, -Math.PI / 2],
+        y: [-60.0 * Math.PI / 180, 45.0 * Math.PI / 180, 0.0],
+        z: [0, 0]
+    }, time)
+    .interpolation(interpolacion)
+    .easing(easing)
+    .start();
+}
+
+function DemostracionBrazoRobot()
+{
+    const time = 8000;
+
+    new TWEEN.Tween(BaseBrazoRobot.rotation)
+    .to({
+        x: [0, 0],
+        y: [0, 0],
+        z: [0, 0]
+    }, time*0.2)
+    .start();
+
+    new TWEEN.Tween(SoporteHerramientas.rotation)
+    .to({
+        x: [0, 0],
+        y: [0, 0],
+        z: [90.0*Math.PI/180, 227.0*Math.PI/180]
+    }, time*0.3)
+    .start();
+
+    new TWEEN.Tween(Antebrazo1.rotation)
+    .to({
+        x: [0, 0],
+        y: [0, 0],
+        z: [0, -60.0*Math.PI/180]
+    }, time*0.3)
+    .start()
+    .onComplete(function(){
+
+        new TWEEN.Tween(Antebrazo1.rotation)
+        .to({
+            x: [0, 0],
+            y: [0, 0],
+            z: [-60.0*Math.PI/180, -90.0*Math.PI/180]
+        }, time*0.3)
+        .start();
+
+        new TWEEN.Tween(SoporteBroca.rotation)
+        .to({
+            x: [0, 0],
+            y: [-5*Math.PI, 5*Math.PI],
+            z: [0, 0]
+        }, time*0.5)
+        .start();
+
+        new TWEEN.Tween(Antebrazo2.rotation)
+        .to({
+            x: [0, 0],
+            y: [0, 0],
+            z: [0, 40.0*Math.PI/180]
+        }, time*0.3)
+        .start()
+        .onComplete(function(){
+
+            new TWEEN.Tween(Antebrazo1.rotation)
+            .to({
+                x: [0, 0],
+                y: [0, 0],
+                z: [-90.0*Math.PI/180, -60.0*Math.PI/180]
+            }, time*0.3)
+            .start();
+    
+            new TWEEN.Tween(Antebrazo2.rotation)
+            .to({
+                x: [0, 0],
+                y: [0, 0],
+                z: [40.0*Math.PI/180, 0]
+            }, time*0.3)
+            .start()
+            .onComplete(function(){
+
+                new TWEEN.Tween(SoporteHerramientas.rotation)
+                .to({
+                    x: [0, 0],
+                    y: [0, 0],
+                    z: [227.0*Math.PI/180, 320.0*Math.PI/180]
+                }, time*0.3)
+                .start()
+                .onComplete(function(){
+
+                    new TWEEN.Tween(Antebrazo1.rotation)
+                    .to({
+                        x: [0, 0],
+                        y: [0, 0],
+                        z: [-60.0*Math.PI/180, -90.0*Math.PI/180]
+                    }, time*0.3)
+                    .start();
+            
+                    new TWEEN.Tween(Antebrazo2.rotation)
+                    .to({
+                        x: [0, 0],
+                        y: [0, 0],
+                        z: [0, 40.0*Math.PI/180]
+                    }, time*0.3)
+                    .start()
+                    .onComplete(function(){
+
+                        new TWEEN.Tween(Antebrazo1.rotation)
+                        .to({
+                            x: [0, 0],
+                            y: [0, 0],
+                            z: [-90.0*Math.PI/180, -60.0*Math.PI/180]
+                        }, time*0.3)
+                        .start();
+                
+                        new TWEEN.Tween(Antebrazo2.rotation)
+                        .to({
+                            x: [0, 0],
+                            y: [0, 0],
+                            z: [40.0*Math.PI/180, 0]
+                        }, time*0.3)
+                        .start()
+                        .onComplete(function(){
+
+                            new TWEEN.Tween(Antebrazo1.rotation)
+                            .to({
+                                x: [0, 0],
+                                y: [0, 0],
+                                z: [-60.0*Math.PI/180, 0]
+                            }, time*0.3)
+                            .start();
+
+                            new TWEEN.Tween(SoporteHerramientas.rotation)
+                            .to({
+                                x: [0, 0],
+                                y: [0, 0],
+                                z: [320.0*Math.PI/180, 90.0*Math.PI/180]
+                            }, time*0.3)
+                            .start();
+                        });
+                    });
+                });
+            });
+        });
+    });
+}
+
+function DemostracionElevadorCamara()
+{
+    const time = 8000;
+
+    new TWEEN.Tween(EjeElevadorCamara.position)
+    .to({
+        x: [0, 0],
+        y: [-56.0*Math.PI/180, 35.0*Math.PI/180],
+        z: [0, 0]
+    }, time*0.3)
+    .start()
+    .onComplete(function(){
+        new TWEEN.Tween(SoporteCamara.rotation)
+        .to({
+            x: [0, 0],
+            y: [0 ,0],
+            z: [0.0, -15.0*Math.PI/180]
+        }, time*0.3)
+        .start()
+        .onComplete(function(){
+            new TWEEN.Tween(EjeElevadorCamara.rotation)
+            .to({
+                x: [0, 0],
+                y: [-25.0*Math.PI/180, 25.0*Math.PI/180],
+                z: [0, 0]
+            }, time*0.3)
+            .start()
+            .onComplete(function(){
+                new TWEEN.Tween(EjeElevadorCamara.position)
+                .to({
+                    x: [0, 0],
+                    y: [35.0*Math.PI/180, -56.0*Math.PI/180],
+                    z: [0, 0]
+                }, time*0.3)
+                .start();
+
+                new TWEEN.Tween(EjeElevadorCamara.rotation)
+                .to({
+                    x: [0, 0],
+                    y: [25.0*Math.PI/180, 0.0],
+                    z: [0, 0]
+                }, time*0.3)
+                .start();
+
+                new TWEEN.Tween(SoporteCamara.rotation)
+                .to({
+                    x: [0, 0],
+                    y: [0 ,0],
+                    z: [-15.0*Math.PI/180, 0]
+                }, time*0.3)
+                .start();
+            });
+        });
+    });
+}
+
+function updateGui()
+{
+    if(fenobot)
+    {
+        effectController.controlesMov = 'Up-Down-Left-Right';
+        effectController.controlesRot = 'A-D';
+        // actualizar la GUI de acuerdo a las transformaciones del robot
+        effectController.giroPanelAxisLeft = PanelAxisLeft.rotation.y*180/Math.PI;
+        effectController.giroPanelAxisRight = PanelAxisRight.rotation.y*180/Math.PI;
+        effectController.giroBaseBrazoRobot = BaseBrazoRobot.rotation.x*180/Math.PI;
+        effectController.giroAntebrazo1 = Antebrazo1.rotation.z*180/Math.PI;
+        effectController.giroAntebrazo2 = Antebrazo2.rotation.z*180/Math.PI;
+        effectController.giroSoporteHerramientas = SoporteHerramientas.rotation.z*180/Math.PI;
+        effectController.giroSoporteBroca = SoporteBroca.rotation.y*180/Math.PI;
+        effectController.giroYEjeElevadorCamara = EjeElevadorCamara.position.y*180/Math.PI;
+        effectController.giroZEjeElevadorCamara = EjeElevadorCamara.rotation.y*180/Math.PI;
+        effectController.giroSoporteCamara = SoporteCamara.rotation.z*180/Math.PI;
+    }
+}
+
+function setupGui()
+{
+    // Definicion de los controles de la GUI
+    effectController = {
+
+        controlesRot: 'A-D',
+        controlesMov: 'Up-Down-Left-Right',
+        giroPanelAxisLeft: 0.0,
+        giroPanelAxisRight: 0.0,
+
+        giroBaseBrazoRobot: 0.0,
+        giroAntebrazo1: 0.0,
+        giroAntebrazo2: 0.0,
+        giroSoporteHerramientas: 0.0,
+        giroSoporteBroca: 0.0,
+
+        giroYEjeElevadorCamara: 0.0,
+        giroZEjeElevadorCamara: 0.0,
+        giroSoporteCamara: 0.0,
+
+        BThemiLightHelper: false, 
+        BTdirLightHelper: false, 
+        BThelperCentinal: false, 
+        BThelperPicada: false,
+        BThelperRobot: false,
+
+        animaPanelesSolares: function() { DemostracionPanelesSolares(); },
+        animaBrazoRobot: function() { DemostracionBrazoRobot(); },
+        animaCamaraRobot: function() { DemostracionElevadorCamara(); }
+	};
+
+	// Creacion interfaz
+	const gui = new GUI();
+    gui.add(effectController, "controlesMov").name("Desplazamiento").listen();
+    gui.add(effectController, "controlesRot").name("Rotación").listen();
+
+    // Manejo inclinacion paneles solares del robot
+    const y = gui.addFolder("Paneles Solares");
+	y.add(effectController, "giroPanelAxisLeft", -60.0, 45.0, 0.01).name("Panel Solar Izq.").
+    listen().onChange( value => {
+        PanelAxisLeft.rotation.y = value*Math.PI/180; });
+	y.add(effectController, "giroPanelAxisRight", -60.0, 45.0, 0.01).name("Panel Solar Der.").
+    listen().onChange( value => {
+        PanelAxisRight.rotation.y = value*Math.PI/180; });
+    y.add(effectController, "animaPanelesSolares").name("Demostración Paneles Solares");
+
+    // Manejo del brazo robotico
+    const x = gui.addFolder("Brazo Robótico");
+    x.add(effectController, "giroBaseBrazoRobot", -45.0, 45.0, 0.01).name("Base").
+    listen().onChange( value => {
+        BaseBrazoRobot.rotation.x = value*Math.PI/180; });
+    x.add(effectController, "giroAntebrazo1", -120.0, 0.0, 0.01).name("Antebrazo").
+    listen().onChange( value => {
+        Antebrazo1.rotation.z = value*Math.PI/180; });
+    x.add(effectController, "giroAntebrazo2", 0.0, 135.0, 0.01).name("Brazo").
+    listen().onChange( value => {
+        Antebrazo2.rotation.z = value*Math.PI/180; });
+    x.add(effectController, "giroSoporteHerramientas", 80.0, 345.0, 0.01).name("Eje de herramientas").
+    listen().onChange( value => {
+        SoporteHerramientas.rotation.z = value*Math.PI/180; 
+    });
+    x.add(effectController, "giroSoporteBroca", -360.0, 360.0, 0.025).name("Taladro").
+    listen().onChange( value => {
+        SoporteBroca.rotation.y = value*Math.PI/180; });
+    x.add(effectController, "animaBrazoRobot").name("Demostración Medición del Suelo");
+
+    // Manejo elevador de la camara
+    const z = gui.addFolder("Elevador Cámara");
+    z.add(effectController, "giroYEjeElevadorCamara", -56.0, 35.0, 0.01).name("Traslación vertical").
+    listen().onChange( value => {
+        EjeElevadorCamara.position.y = value*Math.PI/180; });
+    z.add(effectController, "giroZEjeElevadorCamara", -45.0, 45.0, 0.01).name("Ángulo de deriva (Yaw)").
+    listen().onChange( value => {
+        EjeElevadorCamara.rotation.y = value*Math.PI/180; });
+    z.add(effectController, "giroSoporteCamara", -45.0, 45.0, 0.01).name("Ángulo de inclinación (Pitch)").
+    listen().onChange( value => {
+        SoporteCamara.rotation.z = value*Math.PI/180; });
+    z.add(effectController, "animaCamaraRobot").name("Demostración Elevador Cámara");
+
+    // Activar/desactivar helpers de camaras y luces
+    const w = gui.addFolder("Helpers");
+    w.add(effectController, "BThemiLightHelper").name("Luz Hemisférica").
+    listen().onChange( value => {
+        hemiLightHelper.visible = value;
+    });
+    w.add(effectController, "BTdirLightHelper").name("Luz Direccional").
+    listen().onChange( value => {
+        dirLightHelper.visible = value;
+    });
+    w.add(effectController, "BThelperCentinal").name("Cámara Cenital").
+    listen().onChange( value => {
+        helperCentinal.visible = value;
+    });
+    w.add(effectController, "BThelperPicada").name("Cámara Picada").
+    listen().onChange( value => {
+        helperPicada.visible = value;
+    });
+    w.add(effectController, "BThelperRobot").name("Cámara Robot").
+    listen().onChange( value => {
+        helperRobot.visible = value;
+    });
 }
