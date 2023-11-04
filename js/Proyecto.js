@@ -1,3 +1,8 @@
+
+// Modulos necesarios
+import * as THREE from "../lib/three.module.js";
+
+
 const counterDOM = document.getElementById('counter');  
 const endDOM = document.getElementById('end');  
 
@@ -18,7 +23,7 @@ camera.position.z = distance;
 
 const zoom = 2;
 
-const chickenSize = 15;
+const chickenSize = 40;
 
 const positionWidth = 42;
 const columns = 17;
@@ -73,13 +78,7 @@ dirLight.castShadow = true;
 dirLight.target = chicken;
 scene.add(dirLight);
 
-dirLight.shadow.mapSize.width = 2048;
-dirLight.shadow.mapSize.height = 2048;
-var d = 500;
-dirLight.shadow.camera.left = - d;
-dirLight.shadow.camera.right = d;
-dirLight.shadow.camera.top = d;
-dirLight.shadow.camera.bottom = - d;
+
 
 // var helper = new THREE.CameraHelper( dirLight.shadow.camera );
 // var helper = new THREE.CameraHelper( camera );
@@ -164,33 +163,7 @@ function Car() {
   main.receiveShadow = true;
   car.add(main)
   
-  const cabin = new THREE.Mesh(
-    new THREE.BoxBufferGeometry( 33*zoom, 24*zoom, 12*zoom ), 
-    [
-      new THREE.MeshPhongMaterial( { color: 0xcccccc, flatShading: true, map: carBackTexture } ),
-      new THREE.MeshPhongMaterial( { color: 0xcccccc, flatShading: true, map: carFrontTexture } ),
-      new THREE.MeshPhongMaterial( { color: 0xcccccc, flatShading: true, map: carRightSideTexture } ),
-      new THREE.MeshPhongMaterial( { color: 0xcccccc, flatShading: true, map: carLeftSideTexture } ),
-      new THREE.MeshPhongMaterial( { color: 0xcccccc, flatShading: true } ), // top
-      new THREE.MeshPhongMaterial( { color: 0xcccccc, flatShading: true } ) // bottom
-    ]
-  );
-  cabin.position.x = 6*zoom;
-  cabin.position.z = 25.5*zoom;
-  cabin.castShadow = true;
-  cabin.receiveShadow = true;
-  car.add( cabin );
-  
-  const frontWheel = new Wheel();
-  frontWheel.position.x = -18*zoom;
-  car.add( frontWheel );
 
-  const backWheel = new Wheel();
-  backWheel.position.x = 18*zoom;
-  car.add( backWheel );
-
-  car.castShadow = true;
-  car.receiveShadow = false;
   
   return car;  
 }
@@ -206,45 +179,6 @@ function Truck() {
   );
   base.position.z = 10*zoom;
   truck.add(base)
-
-  const cargo = new THREE.Mesh(
-    new THREE.BoxBufferGeometry( 75*zoom, 35*zoom, 40*zoom ), 
-    new THREE.MeshPhongMaterial( { color: 0xb4c6fc, flatShading: true } )
-  );
-  cargo.position.x = 15*zoom;
-  cargo.position.z = 30*zoom;
-  cargo.castShadow = true;
-  cargo.receiveShadow = true;
-  truck.add(cargo)
-
-  const cabin = new THREE.Mesh(
-    new THREE.BoxBufferGeometry( 25*zoom, 30*zoom, 30*zoom ), 
-    [
-      new THREE.MeshPhongMaterial( { color, flatShading: true } ), // back
-      new THREE.MeshPhongMaterial( { color, flatShading: true, map: truckFrontTexture } ),
-      new THREE.MeshPhongMaterial( { color, flatShading: true, map: truckRightSideTexture } ),
-      new THREE.MeshPhongMaterial( { color, flatShading: true, map: truckLeftSideTexture } ),
-      new THREE.MeshPhongMaterial( { color, flatShading: true } ), // top
-      new THREE.MeshPhongMaterial( { color, flatShading: true } ) // bottom
-    ]
-  );
-  cabin.position.x = -40*zoom;
-  cabin.position.z = 20*zoom;
-  cabin.castShadow = true;
-  cabin.receiveShadow = true;
-  truck.add( cabin );
-
-  const frontWheel = new Wheel();
-  frontWheel.position.x = -38*zoom;
-  truck.add( frontWheel );
-
-  const middleWheel = new Wheel();
-  middleWheel.position.x = -10*zoom;
-  truck.add( middleWheel );
-
-  const backWheel = new Wheel();
-  backWheel.position.x = 30*zoom;
-  truck.add( backWheel );
 
   return truck;  
 }
@@ -263,14 +197,6 @@ function Three() {
 
   height = threeHeights[Math.floor(Math.random()*threeHeights.length)];
 
-  const crown = new THREE.Mesh(
-    new THREE.BoxBufferGeometry( 30*zoom, 30*zoom, height*zoom ), 
-    new THREE.MeshLambertMaterial( { color: 0x7aa21d, flatShading: true } )
-  );
-  crown.position.z = (height/2+20)*zoom;
-  crown.castShadow = true;
-  crown.receiveShadow = false;
-  three.add(crown);
 
   return three;  
 }
@@ -278,23 +204,47 @@ function Three() {
 function Chicken() {
   const chicken = new THREE.Group();
 
-  const body = new THREE.Mesh(
-    new THREE.BoxBufferGeometry( chickenSize*zoom, chickenSize*zoom, 20*zoom ), 
-    new THREE.MeshPhongMaterial( { color: 0xffffff, flatShading: true } )
-  );
+  const bodyGeometry = new THREE.BoxBufferGeometry(20, 30, 10);
+  const bodyMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+  const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+  chicken.add(body);
   body.position.z = 10*zoom;
   body.castShadow = true;
   body.receiveShadow = true;
   chicken.add(body);
+  
+  const headGeometry = new THREE.SphereBufferGeometry(10);
+  const headMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+  const head = new THREE.Mesh(headGeometry, headMaterial);
+  head.position.y = 25; // Alinear la cabeza con la parte superior del cuerpo
+  chicken.add(head);
+  
+  const armGeometry = new THREE.BoxBufferGeometry(5, 20, 5);
+  const armMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
 
-  const rowel = new THREE.Mesh(
-    new THREE.BoxBufferGeometry( 2*zoom, 4*zoom, 2*zoom ), 
-    new THREE.MeshLambertMaterial( { color: 0xF0619A, flatShading: true } )
-  );
-  rowel.position.z = 21*zoom;
-  rowel.castShadow = true;
-  rowel.receiveShadow = false;
-  chicken.add(rowel);
+  const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+  leftArm.position.x = -15; // Posicionar el brazo izquierdo
+  leftArm.position.y = 15; // Alinear el brazo con la mitad del cuerpo
+  chicken.add(leftArm);
+
+  const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+  rightArm.position.x = 15; // Posicionar el brazo derecho
+  rightArm.position.y = 15; // Alinear el brazo con la mitad del cuerpo
+  chicken.add(rightArm);
+  
+  const legGeometry = new THREE.BoxBufferGeometry(7, 20, 7);
+  const legMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+
+  const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
+  leftLeg.position.x = -7; // Posicionar la pierna izquierda
+  leftLeg.position.y = -5; // Alinear la pierna con la parte inferior del cuerpo
+  chicken.add(leftLeg);
+
+  const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
+  rightLeg.position.x = 7; // Posicionar la pierna derecha
+  rightLeg.position.y = -5; // Alinear la pierna con la parte inferior del cuerpo
+  chicken.add(rightLeg);
+
 
   return chicken;  
 }
