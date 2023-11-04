@@ -1,41 +1,38 @@
-<!DOCTYPE html>
-<!--
-    Pagina de carga de una aplicacin basica en Threejs
--->
+<div id="counter">0</div>
+    
+<div id="controlls">
+  <div>
+    <button id="forward">
+      <svg width="30" height="30" viewBox="0 0 10 10">
+        <g transform="rotate(0, 5,5)">
+          <path d="M5,4 L7,6 L3,6 L5,4" />
+        </g>
+      </svg>
+    </button>
+    <button id="left">
+      <svg width="30" height="30" viewBox="0 0 10 10">
+        <g transform="rotate(-90, 5,5)">
+          <path d="M5,4 L7,6 L3,6 L5,4" />
+        </g>
+      </svg>
+    </button>
+    <button id="backward">
+      <svg width="30" height="30" viewBox="0 0 10 10">
+        <g transform="rotate(180, 5,5)">
+          <path d="M5,4 L7,6 L3,6 L5,4" />
+        </g>
+      </svg>
+    </button>
+    <button id="right">
+      <svg width="30" height="30" viewBox="0 0 10 10">
+        <g transform="rotate(90, 5,5)">
+          <path d="M5,4 L7,6 L3,6 L5,4" />
+        </g>
+      </svg>
+    </button>
+  </div>
+</div>
 
-<html lang="es">
-    <head>
-        <meta charset="utf-8">
-        <title> Aplicacion basica en Threejs </title>
-        <style>
-            body{ background-color: white;
-                  margin: 0px;
-                  overflow: hidden;
-                }
-            #info{
-                position: absolute;
-                bottom: 0px;
-                left: 50px;
-                width: 30%;
-                text-align: left;
-                z-index: 1;
-            }
-        </style>
-    </head>
-    <body>
-
-        <div id="container"></div>
-
-        <div id="info">
-            <h2>Práctica 5 - Santiago Humberto Ramirez Martinez</h2>
-        </div>
-        
-        <!-- scripts de biblioteca -->
-        <script type="importmap">
-            { "imports": { "three": "./lib/three.module.js"} }
-        </script>
-
-        <!-- mi script -->
-        <script type="module" src="js/Proyecto.js"></script>
-    </body>
-</html>
+<div id="end">
+  <button id="retry">Retry</button>
+</div>
