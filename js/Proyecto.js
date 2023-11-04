@@ -239,23 +239,7 @@ function loadScene()
 
     // Cargar plantas demostrativas
     // Planta de maiz: "Corn! Corn! Corn!" (https://skfb.ly/6t6wL) by Tiia Tuulia is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
-    loaderGLTF.load( 'corn_corn_corn.glb', function ( gltf ) {
-        corn = gltf.scene;
-        corn.traverse(function (child) {
-            child.receiveShadow = true;
-            child.castShadow = true;
-        });
-        corn.scale.set(90,90,90);
-        for(let i = -400; i < 400; i+=80){
-            const cornCopy = corn.clone();
-            cornCopy.position.set(i, 0, 190);
-            cornCopy.rotation.y = Math.random() * (Math.PI);
-            scene.add( cornCopy );
-        }
-    } );
 
-    render();
-}
 
 function render(delta)
 {
