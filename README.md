@@ -1,9 +1,3 @@
-# tennis
-
-Tennis but with janky physics. Made using Three.js.
-
-## Demo:
-https://leslieyip02.github.io/tennis/
 
 ## Controls:
 - R            - Reset
