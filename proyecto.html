@@ -1,4 +1,32 @@
-<div id="counter">0</div>
+
+<!DOCTYPE html>
+<!--
+    Pagina de carga de una aplicacin basica en Threejs
+-->
+
+<html lang="es">
+    <head>
+        <meta charset="utf-8">
+        <title> Aplicacion basica en Threejs </title>
+        <style>
+            body{ background-color: white;
+                  margin: 0px;
+                  overflow: hidden;
+                }
+            #info{
+                position: absolute;
+                bottom: 0px;
+                left: 50px;
+                width: 30%;
+                text-align: left;
+                z-index: 1;
+            }
+        </style>
+    </head>
+    <body>
+
+        <div id="container"></div>
+        <div id="counter">0</div>
     
 <div id="controlls">
   <div>
@@ -37,4 +65,15 @@
   <button id="retry">Retry</button>
 </div>
 
-<script src="js/Proyecto.js"></script>
+        <div id="info">
+            <h2>Práctica 5 - Santiago Humberto Ramirez Martinez</h2>
+        </div>
+        
+        <!-- scripts de biblioteca -->
+        <script type="importmap">
+            { "imports": { "three": "./lib/three.module.js"} }
+        </script>
+        <!-- mi script -->
+        <script type="module" src="js/Proyecto.js"></script>
+    </body>
+</html>
