@@ -206,7 +206,7 @@ function loadScene()
     scene.add( ground );
 
     // Cargar modelo del robot
-    loaderGLTF.load( 'FenobotModel.glb', function ( gltf ) {
+    loaderGLTF.load( 'Tank.glb', function ( gltf ) {
         fenobot = gltf.scene;
         fenobot.position.y = 35;
         fenobot.traverse(function (child) {
